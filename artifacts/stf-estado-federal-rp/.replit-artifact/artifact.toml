@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Supremo Tribunal Federal — Estado Federal do RP"
+description = "Portal judicial para o ESTADO FEDERAL DO RP, com cadastro e acompanhamento de denúncias e processos, julgamento por cinco ministros, decisões e administração protegida."
+version = "1.0.0"
+id = "artifacts/stf-estado-federal-rp"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21315
+
+[services.development]
+run = "pnpm --filter @workspace/stf-estado-federal-rp run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/stf-estado-federal-rp", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/stf-estado-federal-rp/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21315"
+BASE_PATH = "/"
