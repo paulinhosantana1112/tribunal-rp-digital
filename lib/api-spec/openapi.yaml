@@ -3,20 +3,24 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API for Supremo Tribunal Federal — Estado Federal do RP
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: public
+  - name: processes
+  - name: ministers
+  - name: admin
+  - name: storage
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +28,700 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/me:
+    get:
+      operationId: getMyProfile
+      tags: [auth]
+      summary: Get the signed-in user's tribunal profile
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /public/summary:
+    get:
+      operationId: getPublicSummary
+      tags: [public]
+      summary: Public overview of the court
+      responses:
+        "200":
+          description: Public process totals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicSummary"
+  /public/decisions:
+    get:
+      operationId: getPublishedDecisions
+      tags: [public]
+      summary: List published decisions
+      responses:
+        "200":
+          description: Public decisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublishedDecision"
+  /processes:
+    get:
+      operationId: listProcesses
+      tags: [processes]
+      summary: List processes visible to the current user
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ProcessStatus"
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Processes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProcessListItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createProcess
+      tags: [processes]
+      summary: File a complaint and open a process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplaintInput"
+      responses:
+        "201":
+          description: Process created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /processes/{processId}:
+    get:
+      operationId: getProcess
+      tags: [processes]
+      summary: View a process the current user is allowed to access
+      parameters:
+        - $ref: "#/components/parameters/ProcessId"
+      responses:
+        "200":
+          description: Process details and privacy-safe vote progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /processes/{processId}/votes:
+    post:
+      operationId: submitVote
+      tags: [ministers]
+      summary: Submit the signed-in minister's immutable vote for the current round
+      parameters:
+        - $ref: "#/components/parameters/ProcessId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoteInput"
+      responses:
+        "201":
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /processes/{processId}/information:
+    post:
+      operationId: submitAdditionalInformation
+      tags: [processes]
+      summary: Provide requested information to a process
+      parameters:
+        - $ref: "#/components/parameters/ProcessId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdditionalInformationInput"
+      responses:
+        "201":
+          description: Information recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Administrative dashboard totals
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List registered accounts for role and minister assignment
+      responses:
+        "200":
+          description: Tribunal accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/ministers:
+    get:
+      operationId: listMinisters
+      tags: [admin]
+      summary: List the five minister seats
+      responses:
+        "200":
+          description: Minister seats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: assignMinister
+      tags: [admin]
+      summary: Assign a registered account to an available minister seat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MinisterAssignmentInput"
+      responses:
+        "200":
+          description: Minister assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/users/{userId}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [admin]
+      summary: Change a tribunal account's role
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleUpdateInput"
+      responses:
+        "200":
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/processes/{processId}/status:
+    patch:
+      operationId: updateProcessStatus
+      tags: [admin]
+      summary: Change a process status when permitted
+      parameters:
+        - $ref: "#/components/parameters/ProcessId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProcessStatusInput"
+      responses:
+        "200":
+          description: Updated process
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/processes/{processId}/start-trial:
+    post:
+      operationId: startTrial
+      tags: [admin]
+      summary: Start or resume a new five-minister voting round
+      parameters:
+        - $ref: "#/components/parameters/ProcessId"
+      responses:
+        "200":
+          description: Process placed into judgment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/processes/{processId}/publish-decision:
+    post:
+      operationId: publishDecision
+      tags: [admin]
+      summary: Publish the result of a completed vote
+      parameters:
+        - $ref: "#/components/parameters/ProcessId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionInput"
+      responses:
+        "201":
+          description: Decision published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishedDecision"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/settings:
+    get:
+      operationId: getSystemSettings
+      tags: [admin]
+      summary: Read system settings
+      responses:
+        "200":
+          description: Tribunal settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSettings"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: updateSystemSettings
+      tags: [admin]
+      summary: Update the judgment deadline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SystemSettingsInput"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSettings"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [admin]
+      summary: Read recent administrative and judicial actions
+      responses:
+        "200":
+          description: Audit trail
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLog"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/telegram/webhook:
+    post:
+      operationId: setTelegramWebhook
+      tags: [admin]
+      summary: Register the current portal URL with the Telegram Bot API
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramWebhookInput"
+      responses:
+        "200":
+          description: Webhook registration result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramWebhookResult"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a private upload URL for an evidence file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadRequest"
+      responses:
+        "200":
+          description: Signed upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
+  parameters:
+    ProcessId:
+      name: processId
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    Unauthorized:
+      description: Sign-in required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Operation conflicts with the current process state
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
-
+      required: [status]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    UserRole:
+      type: string
+      enum: [ADMINISTRADOR, MINISTRO, CIDADÃO]
+    ProcessStatus:
+      type: string
+      enum:
+        - Recebida
+        - Em triagem
+        - Aguardando julgamento
+        - Em julgamento
+        - Julgamento concluído
+        - Arquivada
+        - Procedente
+        - Improcedente
+        - Aguardando informações
+    VoteChoice:
+      type: string
+      enum: [PROCEDENTE, IMPROCEDENTE, PEDIDO_DE_MAIS_INFORMACOES, IMPEDIMENTO]
+    DecisionOutcome:
+      type: string
+      enum: [PROCEDENTE, IMPROCEDENTE, EMPATE]
+    UserProfile:
+      type: object
+      required: [id, email, name, role, ministerSeat]
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { $ref: "#/components/schemas/UserRole" }
+        ministerSeat: { type: ["integer", "null"] }
+    PublicSummary:
+      type: object
+      required: [totalProcesses, publishedDecisions, inJudgment, ministers]
+      properties:
+        totalProcesses: { type: integer }
+        publishedDecisions: { type: integer }
+        inJudgment: { type: integer }
+        ministers: { type: integer }
+    VoteProgress:
+      type: object
+      required: [ministerUserId, ministerName, seat, hasVoted, votedAt]
+      properties:
+        ministerUserId: { type: integer }
+        ministerName: { type: string }
+        seat: { type: integer }
+        hasVoted: { type: boolean }
+        votedAt: { type: ["string", "null"], format: date-time }
+    VoteTally:
+      type: object
+      required: [procedente, improcedente]
+      properties:
+        procedente: { type: integer }
+        improcedente: { type: integer }
+    ProcessListItem:
+      type: object
+      required: [id, processNumber, subject, accusedName, category, complainantName, status, createdAt, deadlineAt, result, voteRound, voteProgress, publishedAt]
+      properties:
+        id: { type: integer }
+        processNumber: { type: string }
+        subject: { type: string }
+        accusedName: { type: string }
+        category: { type: string }
+        complainantName: { type: string }
+        status: { $ref: "#/components/schemas/ProcessStatus" }
+        createdAt: { type: string, format: date-time }
+        deadlineAt: { type: ["string", "null"], format: date-time }
+        result:
+          anyOf:
+            - $ref: "#/components/schemas/DecisionOutcome"
+            - type: "null"
+        voteRound: { type: integer }
+        voteProgress:
+          type: array
+          items: { $ref: "#/components/schemas/VoteProgress" }
+        publishedAt: { type: ["string", "null"], format: date-time }
+    Attachment:
+      type: object
+      required: [id, name, contentType, size, url]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        contentType: { type: string }
+        size: { type: integer }
+        url: { type: string }
+    ProcessDetail:
+      allOf:
+        - $ref: "#/components/schemas/ProcessListItem"
+        - type: object
+          required: [facts, attachments, voteTally, myVote, decisionSummary]
+          properties:
+            facts: { type: string }
+            attachments:
+              type: array
+              items: { $ref: "#/components/schemas/Attachment" }
+            voteTally:
+              oneOf:
+                - $ref: "#/components/schemas/VoteTally"
+                - type: "null"
+            myVote:
+              oneOf:
+                - $ref: "#/components/schemas/MyVote"
+                - type: "null"
+            decisionSummary: { type: ["string", "null"] }
+    MyVote:
+      type: object
+      required: [choice, rationale, createdAt]
+      properties:
+        choice: { $ref: "#/components/schemas/VoteChoice" }
+        rationale: { type: string }
+        createdAt: { type: string, format: date-time }
+    ComplaintInput:
+      type: object
+      required: [accusedName, category, subject, facts, attachments]
+      properties:
+        accusedName: { type: string, minLength: 1, maxLength: 200 }
+        category: { type: string, minLength: 1, maxLength: 100 }
+        subject: { type: string, minLength: 1, maxLength: 200 }
+        facts: { type: string, minLength: 20, maxLength: 10000 }
+        attachments:
+          type: array
+          items: { $ref: "#/components/schemas/AttachmentInput" }
+    AttachmentInput:
+      type: object
+      required: [objectPath, name, contentType, size]
+      properties:
+        objectPath: { type: string, minLength: 1, maxLength: 500 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        contentType: { type: string, minLength: 1, maxLength: 150 }
+        size: { type: integer, minimum: 1, maximum: 25000000 }
+    VoteInput:
+      type: object
+      required: [choice, rationale]
+      properties:
+        choice: { $ref: "#/components/schemas/VoteChoice" }
+        rationale: { type: string, minLength: 10, maxLength: 5000 }
+    AdditionalInformationInput:
+      type: object
+      required: [message, attachments]
+      properties:
+        message: { type: string, minLength: 5, maxLength: 5000 }
+        attachments:
+          type: array
+          items: { $ref: "#/components/schemas/AttachmentInput" }
+    AdminDashboard:
+      type: object
+      required: [totalProcesses, received, inReview, inJudgment, awaitingInformation, concluded, ministersAssigned]
+      properties:
+        totalProcesses: { type: integer }
+        received: { type: integer }
+        inReview: { type: integer }
+        inJudgment: { type: integer }
+        awaitingInformation: { type: integer }
+        concluded: { type: integer }
+        ministersAssigned: { type: integer }
+    AdminUser:
+      type: object
+      required: [id, name, email, role, ministerSeat, active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: ["string", "null"], format: email }
+        role: { $ref: "#/components/schemas/UserRole" }
+        ministerSeat: { type: ["integer", "null"] }
+        active: { type: boolean }
+    MinisterAssignmentInput:
+      type: object
+      required: [userId, seat]
+      properties:
+        userId: { type: integer }
+        seat: { type: integer, minimum: 1, maximum: 5 }
+    RoleUpdateInput:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [ADMINISTRADOR, CIDADÃO]
+    ProcessStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/ProcessStatus"
+    DecisionInput:
+      type: object
+      required: [summary]
+      properties:
+        summary: { type: string, minLength: 20, maxLength: 10000 }
+    PublishedDecision:
+      type: object
+      required: [id, processId, processNumber, subject, category, outcome, summary, publishedAt]
+      properties:
+        id: { type: integer }
+        processId: { type: integer }
+        processNumber: { type: string }
+        subject: { type: string }
+        category: { type: string }
+        outcome: { $ref: "#/components/schemas/DecisionOutcome" }
+        summary: { type: string }
+        publishedAt: { type: string, format: date-time }
+    SystemSettings:
+      type: object
+      required: [deadlineHours]
+      properties:
+        deadlineHours: { type: integer }
+    SystemSettingsInput:
+      type: object
+      required: [deadlineHours]
+      properties:
+        deadlineHours: { type: integer, minimum: 1, maximum: 720 }
+    AuditLog:
+      type: object
+      required: [id, actorName, action, details, createdAt]
+      properties:
+        id: { type: integer }
+        actorName: { type: string }
+        action: { type: string }
+        details: { type: string }
+        createdAt: { type: string, format: date-time }
+    TelegramWebhookInput:
+      type: object
+      required: [webhookUrl]
+      properties:
+        webhookUrl: { type: string, format: uri }
+    TelegramWebhookResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { type: boolean }
+        message: { type: string }
+    UploadRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 25000000 }
+        contentType: { type: string, minLength: 1, maxLength: 150 }
+    UploadResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }

@@ -5,7 +5,8 @@
  * API for Supremo Tribunal Federal — Estado Federal do RP
  * OpenAPI spec version: 0.1.0
  */
+import type { RoleUpdateInputRole } from './roleUpdateInputRole';
 
-export interface HealthStatus {
-  status: string;
+export interface RoleUpdateInput {
+  role: RoleUpdateInputRole;
 }

@@ -5,7 +5,9 @@
  * API for Supremo Tribunal Federal — Estado Federal do RP
  * OpenAPI spec version: 0.1.0
  */
+import type { ErrorResponse } from './errorResponse';
 
-export interface HealthStatus {
-  status: string;
-}
+/**
+ * Access denied
+ */
+export type ForbiddenResponse = ErrorResponse;

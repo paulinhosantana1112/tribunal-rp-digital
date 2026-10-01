@@ -5,7 +5,10 @@
  * API for Supremo Tribunal Federal — Estado Federal do RP
  * OpenAPI spec version: 0.1.0
  */
+import type { VoteChoice } from './voteChoice';
 
-export interface HealthStatus {
-  status: string;
+export interface MyVote {
+  choice: VoteChoice;
+  rationale: string;
+  createdAt: Date;
 }

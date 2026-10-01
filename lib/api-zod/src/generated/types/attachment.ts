@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface Attachment {
+  id: number;
+  name: string;
+  contentType: string;
+  size: number;
+  url: string;
 }

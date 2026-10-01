@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface DecisionInput {
+  /**
+     * @minLength 20
+     * @maxLength 10000
+     */
+  summary: string;
 }
