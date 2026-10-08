@@ -1,9 +1,13 @@
+```tsx
 import { createRoot } from 'react-dom/client';
 
 import App from './App';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { setBaseUrl } from '@/lib/custom-fetch';
 
 import './index.css';
+
+setBaseUrl(import.meta.env.VITE_API_URL);
 
 createRoot(document.getElementById('root')!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.
@@ -15,3 +19,4 @@ createRoot(document.getElementById('root')!, {
     <App />
   </ErrorBoundary>,
 );
+```
