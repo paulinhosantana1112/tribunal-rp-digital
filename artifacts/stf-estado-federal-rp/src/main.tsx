@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import App from './App';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { setBaseUrl } from '@/lib/custom-fetch';
+import { setBaseUrl } from '@workspace/api-client-react';
 
 import './index.css';
 
